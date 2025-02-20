@@ -1,0 +1,65 @@
+diff --git a/engine/src/flutter/shell/platform/darwin/ios/framework/Source/FlutterDartProject.mm b/engine/src/flutter/shell/platform/darwin/ios/framework/Source/FlutterDartProject.mm
+index 3f31c181f3..d5962241e4 100644
+--- a/engine/src/flutter/shell/platform/darwin/ios/framework/Source/FlutterDartProject.mm
++++ b/engine/src/flutter/shell/platform/darwin/ios/framework/Source/FlutterDartProject.mm
+@@ -177,6 +177,12 @@ flutter::Settings FLTDefaultSettingsForBundle(NSBundle* bundle, NSProcessInfo* p
+   settings.enable_wide_gamut = enableWideGamut;
+ #endif
+ 
++  NSNumber* enableSoftwareRendering = [mainBundle objectForInfoDictionaryKey:@"FLTSoftwareRendering"];
++  // Change the default only if the option is present.
++  if (enableSoftwareRendering != nil) {
++    settings.enable_software_rendering = enableSoftwareRendering.boolValue;
++  }
++
+   settings.warn_on_impeller_opt_out = true;
+ 
+   NSNumber* enableTraceSystrace = [mainBundle objectForInfoDictionaryKey:@"FLTTraceSystrace"];
+diff --git a/engine/src/flutter/shell/platform/darwin/ios/ios_surface_software.mm b/engine/src/flutter/shell/platform/darwin/ios/ios_surface_software.mm
+index cfc05b8f0b..3f22e06b58 100644
+--- a/engine/src/flutter/shell/platform/darwin/ios/ios_surface_software.mm
++++ b/engine/src/flutter/shell/platform/darwin/ios/ios_surface_software.mm
+@@ -91,12 +91,16 @@ bool IOSSurfaceSoftware::PresentBackingStore(sk_sp<SkSurface> backing_store) {
+   fml::CFRef<CGColorSpaceRef> colorspace(CGColorSpaceCreateDeviceRGB());
+ 
+   // Setup the data provider that gives CG a view into the pixmap.
+-  fml::CFRef<CGDataProviderRef> pixmap_data_provider(CGDataProviderCreateWithData(
+-      nullptr,          // info
+-      pixmap.addr32(),  // data
+-      pixmap_size,      // size
+-      nullptr           // release callback
+-      ));
++  // fml::CFRef<CGDataProviderRef> pixmap_data_provider(CGDataProviderCreateWithData(
++  //     nullptr,          // info
++  //     pixmap.addr32(),  // data
++  //     pixmap_size,      // size
++  //     nullptr           // release callback
++  //     ));
++
++  // copy data, TODO: optimize to avoid repeated alloc/dealloc
++  fml::CFRef<CFDataRef> data(CFDataCreate(nullptr, (const unsigned char *)pixmap.addr32(), pixmap_size));
++  fml::CFRef<CGDataProviderRef> pixmap_data_provider(CGDataProviderCreateWithCFData(data));
+ 
+   if (!pixmap_data_provider) {
+     return false;
+diff --git a/engine/src/flutter/shell/platform/darwin/ios/rendering_api_selection.mm b/engine/src/flutter/shell/platform/darwin/ios/rendering_api_selection.mm
+index 81099d7df1..d5d5c8bd54 100644
+--- a/engine/src/flutter/shell/platform/darwin/ios/rendering_api_selection.mm
++++ b/engine/src/flutter/shell/platform/darwin/ios/rendering_api_selection.mm
+@@ -29,16 +29,9 @@ bool ShouldUseMetalRenderer() {
+ }
+ 
+ IOSRenderingAPI GetRenderingAPIForProcess(bool force_software) {
+-#if TARGET_OS_SIMULATOR
+   if (force_software) {
+     return IOSRenderingAPI::kSoftware;
+   }
+-#else
+-  if (force_software) {
+-    FML_LOG(WARNING) << "The --enable-software-rendering is only supported on Simulator targets "
+-                        "and will be ignored.";
+-  }
+-#endif  // TARGET_OS_SIMULATOR
+ 
+   static bool should_use_metal = ShouldUseMetalRenderer();
+   if (should_use_metal) {

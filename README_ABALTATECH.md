@@ -6,7 +6,7 @@ This document outlines how we maintain and apply custom modifications to the Flu
 
 ## Structure of Changes
 
-Our modifications to the Flutter engine are stored as patch files within the repository. Applying multiple patches is done in lexicographic order and thus the files have a consecutive number as a prefix to their name in order to be applied in the correct order. These patch files are created using standard Git commands. The patch files are located in the `master` branch under the `abaltatech_patches` directory.
+Our modifications to the Flutter engine are stored as patch files within the repository. Applying multiple patches is done in lexicographic order and thus the files have a consecutive number as a prefix to their name in order to be applied in the correct order. These patch files are created using standard Git commands. The patch files are located in the `master` branch under the `patches` directory.
 
 ## Applying Patches Locally
 
@@ -28,7 +28,7 @@ After applying the patches the engine can be compiled by following the official 
 
 ## Creating and Committing Changes
 
-After creating and validating changes locally, developers should generate a patch from their modifications and commit it as a separate file within the `abaltatech_patches` directory on the `master` branch. The patch file should follow the ordering convention where the next consecutive number is added as a prefix to the name of the patch file.
+After creating and validating changes locally, developers should generate a patch from their modifications and commit it as a separate file within the `patches` directory on the `master` branch. The patch file should follow the ordering convention where the next consecutive number is added as a prefix to the name of the patch file.
 
 - To create a patch from unstaged changes:
 

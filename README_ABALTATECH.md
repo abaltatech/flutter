@@ -21,7 +21,7 @@ When working on a local machine, developers should apply the patches in the orde
 - For multiple patch files:
 
   ```sh
-  git am *.patch
+  git apply *.patch
   ```
 
 After applying the patches the engine can be compiled by following the official Flutter documentation for [Compiling the Flutter Engine](./engine/src/flutter/docs/contributing/Compiling-the-engine.md).
@@ -34,12 +34,6 @@ After creating and validating changes locally, developers should generate a patc
 
   ```sh
   git diff > 000XX-my-new-change.patch
-  ```
-
-- To create a patch from a commit:
-
-  ```sh
-  git format-patch -1 HEAD
   ```
 
 After that proceed to creating a pull request to the `master` branch with the patch file.

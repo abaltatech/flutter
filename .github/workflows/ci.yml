@@ -1,0 +1,67 @@
+name: Build Flutter Engine
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: '--ios --runtime-mode=release'
+            prefix: ios_release
+
+    steps:
+
+      - name: Setup depot_tools
+        shell: bash
+        run: |
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          echo "${{ github.workspace}}/depot_tools"  >> $GITHUB_PATH
+
+      - name: Setup environment
+        shell: bash
+        run: |
+          #cp engine/scripts/standard.gclient .gclient
+          #gclient sync
+          cat > .gclient <<- EOF
+          solutions = [
+            {
+              "managed": False,
+              "name": ".",
+              "url": "https://github.com/abaltatech/flutter.git",
+              "custom_deps": {},
+              "deps_file": "DEPS",
+              "safesync_url": "",
+            },
+          ]
+          EOF
+
+          gclient sync -j4 -v
+
+      - name: Apply patches for engine
+        shell: bash
+        run: |
+          git apply --ignore-whitespace --whitespace=nowarn patches/*
+
+      - name: Generate build files
+        shell: bash
+        working-directory: engine/src
+        run: |
+          ./flutter/tools/gn ${{ matrix.mode }}
+
+      - name: Build
+        shell: bash
+        working-directory: engine/src
+        run: |
+          find out -mindepth 1 -maxdepth 1 -type d | xargs -n 1 sh -c 'ninja -C $0 || exit 255'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.prefix }}
+          path: |
+            engine/src/out/*/*.xcframework

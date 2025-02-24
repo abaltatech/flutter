@@ -1,0 +1,155 @@
+diff --git a/engine/src/flutter/shell/platform/darwin/ios/framework/Headers/FlutterEngine.h b/engine/src/flutter/shell/platform/darwin/ios/framework/Headers/FlutterEngine.h
+index 931c8de7b0..4ae9c5cb74 100644
+--- a/engine/src/flutter/shell/platform/darwin/ios/framework/Headers/FlutterEngine.h
++++ b/engine/src/flutter/shell/platform/darwin/ios/framework/Headers/FlutterEngine.h
+@@ -97,6 +97,26 @@ FLUTTER_DARWIN_EXPORT
+  */
+ - (instancetype)initWithName:(NSString*)labelPrefix;
+ 
++/**
++ * Initialize this FlutterEngine.
++ *
++ * The engine will execute the project located in the bundle with the identifier
++ * "io.flutter.flutter.app" (the default for Flutter projects).
++ *
++ * A newly initialized engine will not run until either `-runWithEntrypoint:` or
++ * `-runWithEntrypoint:libraryURI:` is called.
++ *
++ * FlutterEngine created with this method will have allowHeadlessExecution set to `YES`.
++ * This means that the engine will continue to run regardless of whether a `FlutterViewController`
++ * is attached to it or not, until `-destroyContext:` is called or the process finishes.
++ *
++ * @param labelPrefix The label prefix used to identify threads for this instance. Should
++ *   be unique across FlutterEngine instances, and is used in instrumentation to label
++ *   the threads used by this FlutterEngine.
++ * @param softwareRendering Whether the engine should use CPU rendering.
++ */
++- (instancetype)initWithName:(NSString*)labelPrefix softwareRendering:(BOOL)forceSoftwareRendering;
++
+ /**
+  * Initialize this FlutterEngine with a `FlutterDartProject`.
+  *
+@@ -161,7 +181,33 @@ FLUTTER_DARWIN_EXPORT
+ - (instancetype)initWithName:(NSString*)labelPrefix
+                      project:(nullable FlutterDartProject*)project
+       allowHeadlessExecution:(BOOL)allowHeadlessExecution
+-          restorationEnabled:(BOOL)restorationEnabled NS_DESIGNATED_INITIALIZER;
++          restorationEnabled:(BOOL)restorationEnabled;
++
++/**
++ * Initialize this FlutterEngine with a `FlutterDartProject`.
++ *
++ * If the FlutterDartProject is not specified, the FlutterEngine will attempt to locate
++ * the project in a default location (the flutter_assets folder in the iOS application
++ * bundle).
++ *
++ * A newly initialized engine will not run the `FlutterDartProject` until either
++ * `-runWithEntrypoint:` or `-runWithEntrypoint:libraryURI:` is called.
++ *
++ * @param labelPrefix The label prefix used to identify threads for this instance. Should
++ *   be unique across FlutterEngine instances, and is used in instrumentation to label
++ *   the threads used by this FlutterEngine.
++ * @param project The `FlutterDartProject` to run.
++ * @param allowHeadlessExecution Whether or not to allow this instance to continue
++ *   running after passing a nil `FlutterViewController` to `-setViewController:`.
++ * @param restorationEnabled Whether state restoration is enabled. When true, the framework will
++ *   wait for the attached view controller to provide restoration data.
++ * @param softwareRendering Whether the engine should use CPU rendering.
++ */
++- (instancetype)initWithName:(NSString*)labelPrefix
++                     project:(nullable FlutterDartProject*)project
++      allowHeadlessExecution:(BOOL)allowHeadlessExecution
++          restorationEnabled:(BOOL)restorationEnabled
++           softwareRendering:(BOOL)forceSoftwareRendering NS_DESIGNATED_INITIALIZER;
+ 
+ /**
+  * Runs a Dart program on an Isolate from the main Dart library (i.e. the library that
+diff --git a/engine/src/flutter/shell/platform/darwin/ios/framework/Source/FlutterDartProject.mm b/engine/src/flutter/shell/platform/darwin/ios/framework/Source/FlutterDartProject.mm
+index d5962241e4..3f31c181f3 100644
+--- a/engine/src/flutter/shell/platform/darwin/ios/framework/Source/FlutterDartProject.mm
++++ b/engine/src/flutter/shell/platform/darwin/ios/framework/Source/FlutterDartProject.mm
+@@ -177,12 +177,6 @@ flutter::Settings FLTDefaultSettingsForBundle(NSBundle* bundle, NSProcessInfo* p
+   settings.enable_wide_gamut = enableWideGamut;
+ #endif
+ 
+-  NSNumber* enableSoftwareRendering = [mainBundle objectForInfoDictionaryKey:@"FLTSoftwareRendering"];
+-  // Change the default only if the option is present.
+-  if (enableSoftwareRendering != nil) {
+-    settings.enable_software_rendering = enableSoftwareRendering.boolValue;
+-  }
+-
+   settings.warn_on_impeller_opt_out = true;
+ 
+   NSNumber* enableTraceSystrace = [mainBundle objectForInfoDictionaryKey:@"FLTTraceSystrace"];
+diff --git a/engine/src/flutter/shell/platform/darwin/ios/framework/Source/FlutterEngine.mm b/engine/src/flutter/shell/platform/darwin/ios/framework/Source/FlutterEngine.mm
+index 9b470a8b26..84d38e9abb 100644
+--- a/engine/src/flutter/shell/platform/darwin/ios/framework/Source/FlutterEngine.mm
++++ b/engine/src/flutter/shell/platform/darwin/ios/framework/Source/FlutterEngine.mm
+@@ -104,6 +104,7 @@ static constexpr int kNumProfilerSamplesPerSec = 5;
+ @property(nonatomic, readonly, copy) NSString* labelPrefix;
+ @property(nonatomic, readonly, assign) BOOL allowHeadlessExecution;
+ @property(nonatomic, readonly, assign) BOOL restorationEnabled;
++@property(nonatomic, readonly, assign) BOOL forceSoftwareRendering;
+ 
+ @property(nonatomic, strong) FlutterPlatformViewsController* platformViewsController;
+ 
+@@ -168,6 +169,14 @@ static constexpr int kNumProfilerSamplesPerSec = 5;
+   return [self initWithName:labelPrefix project:nil allowHeadlessExecution:YES];
+ }
+ 
++- (instancetype)initWithName:(NSString*)labelPrefix softwareRendering:(BOOL)forceSoftwareRendering {
++  return [self initWithName:labelPrefix
++                    project:nil
++     allowHeadlessExecution:YES
++         restorationEnabled:NO
++          softwareRendering:forceSoftwareRendering];
++}
++
+ - (instancetype)initWithName:(NSString*)labelPrefix project:(FlutterDartProject*)project {
+   return [self initWithName:labelPrefix project:project allowHeadlessExecution:YES];
+ }
+@@ -185,6 +194,18 @@ static constexpr int kNumProfilerSamplesPerSec = 5;
+                      project:(FlutterDartProject*)project
+       allowHeadlessExecution:(BOOL)allowHeadlessExecution
+           restorationEnabled:(BOOL)restorationEnabled {
++  return [self initWithName:labelPrefix
++                    project:project
++     allowHeadlessExecution:allowHeadlessExecution
++         restorationEnabled:restorationEnabled
++          softwareRendering:NO];
++}
++
++- (instancetype)initWithName:(NSString*)labelPrefix
++                     project:(FlutterDartProject*)project
++      allowHeadlessExecution:(BOOL)allowHeadlessExecution
++          restorationEnabled:(BOOL)restorationEnabled
++           softwareRendering:(BOOL)forceSoftwareRendering {
+   self = [super init];
+   NSAssert(self, @"Super init cannot be nil");
+   NSAssert(labelPrefix, @"labelPrefix is required");
+@@ -193,6 +214,7 @@ static constexpr int kNumProfilerSamplesPerSec = 5;
+   _allowHeadlessExecution = allowHeadlessExecution;
+   _labelPrefix = [labelPrefix copy];
+   _dartProject = project ?: [[FlutterDartProject alloc] init];
++  _forceSoftwareRendering = forceSoftwareRendering;
+ 
+   _enableEmbedderAPI = _dartProject.settings.enable_embedder_api;
+   if (_enableEmbedderAPI) {
+@@ -264,7 +286,7 @@ static constexpr int kNumProfilerSamplesPerSec = 5;
+ }
+ 
+ - (void)recreatePlatformViewsController {
+-  _renderingApi = flutter::GetRenderingAPIForProcess(FlutterView.forceSoftwareRendering);
++  _renderingApi = flutter::GetRenderingAPIForProcess(FlutterView.forceSoftwareRendering || self.forceSoftwareRendering);
+   _platformViewsController = [[FlutterPlatformViewsController alloc] init];
+ }
+ 
+@@ -802,7 +824,7 @@ static void SetEntryPoint(flutter::Settings* settings, NSString* entrypoint, NSS
+     self.initialRoute = [NSString stringWithUTF8String:settings.route.c_str()];
+   }
+ 
+-  FlutterView.forceSoftwareRendering = settings.enable_software_rendering;
++  FlutterView.forceSoftwareRendering = settings.enable_software_rendering || self.forceSoftwareRendering;
+ 
+   auto platformData = [self.dartProject defaultPlatformData];
+ 

@@ -13,7 +13,7 @@ jobs:
   create-tag:
     runs-on: ubuntu-latest
     permissions:
-      contents: write 
+      contents: write
     steps:
 
       - name: Validate Version Format
@@ -32,6 +32,8 @@ jobs:
           git fetch flutter-origin ${{ inputs.ref }} || git fetch flutter-origin refs/tags/${{ inputs.ref }}
 
       - name: Create and Push Tag
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
 
           git config --global user.name "github-actions[bot]"

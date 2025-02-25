@@ -42,5 +42,5 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          git tag ${{ inputs.version }} FETCH_HEAD
+          git tag ${{ inputs.version }} FETCH_HEAD -f
           git push origin ${{ inputs.version }}

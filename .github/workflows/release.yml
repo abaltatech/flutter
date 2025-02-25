@@ -30,6 +30,8 @@ jobs:
           token: ${{ github.token }}
 
       - name: Set Remote Origin
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           git remote add flutter-origin https://github.com/flutter/flutter.git
           git fetch flutter-origin ${{ inputs.ref }} || git fetch flutter-origin refs/tags/${{ inputs.ref }}

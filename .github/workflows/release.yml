@@ -12,9 +12,8 @@ on:
 jobs:
   create-tag:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: write
+    permissions: write-all
+    
     steps:
 
       - name: Validate Version Format

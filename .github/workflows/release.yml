@@ -28,6 +28,11 @@ jobs:
         with:
           token: ${{ github.token }}
 
+      - name: Checkout branch
+        run:
+          git checkout -b ${{ inputs.ref }}
+          git push
+
       #- name: Set Remote Origin
       #  env:
       #    GITHUB_TOKEN: ${{ github.token }}

@@ -28,20 +28,32 @@ jobs:
         with:
           token: ${{ github.token }}
 
-      - name: Set Remote Origin
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          git remote add flutter-origin https://github.com/flutter/flutter.git
-          git fetch flutter-origin ${{ inputs.ref }} || git fetch flutter-origin refs/tags/${{ inputs.ref }}
+      #- name: Set Remote Origin
+      #  env:
+      #    GITHUB_TOKEN: ${{ github.token }}
+      #  run: |
+      #    git remote add flutter-origin https://github.com/flutter/flutter.git
+      # git fetch flutter-origin ${{ inputs.ref }} || git fetch flutter-origin refs/tags/${{ inputs.ref }}
 
-      - name: Create and Push Tag
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
+      - name: Sync upstream changes
+        id: sync
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
+        with:
+          target_sync_branch: ${{ inputs.ref }}
+          # REQUIRED 'target_repo_token' exactly like this!
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
+          upstream_sync_branch: ${{ inputs.ref }}
+          upstream_sync_repo: flutter/flutter
+          
+          
+        
+      #- name: Create and Push Tag
+      #  env:
+      #    GITHUB_TOKEN: ${{ github.token }}
+      #  run: |
 
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      #   git config --global user.name "github-actions[bot]"
+      #    git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          git tag ${{ inputs.version }} FETCH_HEAD
-          git push origin ${{ inputs.version }}
+      #    git tag ${{ inputs.version }} FETCH_HEAD
+      #    git push origin ${{ inputs.version }}

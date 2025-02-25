@@ -49,10 +49,10 @@ jobs:
       - name: Fetch source
         shell: bash
         run: |
-          git checkout ${{ github.ref }}
+          git fetch origin ${{ github.ref }}
+          git checkout FETCH_HEAD
 
       - name: Re-fetch dependencies
-        if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
         shell: bash
         run: |
           gclient sync -j4 -v

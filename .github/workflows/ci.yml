@@ -1,0 +1,97 @@
+name: Build Flutter Engine
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    tags:
+      - '**'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: '--ios --runtime-mode=release'
+            prefix: ios_release
+
+    steps:
+
+      - name: Setup depot_tools
+        shell: bash
+        run: |
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          echo "${{ github.workspace}}/depot_tools"  >> $GITHUB_PATH
+
+      - name: Setup environment
+        shell: bash
+        run: |
+          #cp engine/scripts/standard.gclient .gclient
+          #gclient sync
+          cat > .gclient <<- EOF
+          solutions = [
+            {
+              "managed": False,
+              "name": ".",
+              "url": "https://github.com/abaltatech/flutter.git",
+              "custom_deps": {},
+              "deps_file": "DEPS",
+              "safesync_url": "",
+            },
+          ]
+          EOF
+
+          gclient sync -j4 -v
+
+      - name: Fetch source
+        shell: bash
+        run: |
+          git fetch origin ${{ github.ref }}
+          git checkout FETCH_HEAD
+
+      - name: Re-fetch dependencies
+        shell: bash
+        run: |
+          gclient sync -j4 -v
+
+      - uses: actions/checkout@v4
+        if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
+        with:
+          sparse-checkout: |
+            patches/*
+          ref: master
+
+      - name: Apply patches for engine
+        shell: bash
+        run: |
+          git apply --ignore-whitespace --whitespace=nowarn patches/*
+
+      - name: Generate build files
+        shell: bash
+        working-directory: engine/src
+        run: |
+          ./flutter/tools/gn ${{ matrix.mode }}
+
+      - name: Build
+        shell: bash
+        working-directory: engine/src
+        run: |
+          #find out -mindepth 1 -maxdepth 1 -type d | xargs -n 1 sh -c 'ninja -C $0 || exit 255'
+          flutter/third_party/ninja/ninja -C out/ios_release/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.prefix }}
+          path: |
+            engine/src/out/*/*.xcframework
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: engine/src/out/*/*.xcframework
+
+

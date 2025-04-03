@@ -177,6 +177,13 @@ flutter::Settings FLTDefaultSettingsForBundle(NSBundle* bundle, NSProcessInfo* p
   settings.enable_wide_gamut = enableWideGamut;
 #endif
 
+  NSNumber* enableSoftwareRendering =
+      [mainBundle objectForInfoDictionaryKey:@"FLTSoftwareRendering"];
+  // Change the default only if the option is present.
+  if (enableSoftwareRendering != nil) {
+    settings.enable_software_rendering = enableSoftwareRendering.boolValue;
+  }
+
   settings.warn_on_impeller_opt_out = true;
 
   NSNumber* enableTraceSystrace = [mainBundle objectForInfoDictionaryKey:@"FLTTraceSystrace"];

@@ -29,16 +29,9 @@ bool ShouldUseMetalRenderer() {
 }
 
 IOSRenderingAPI GetRenderingAPIForProcess(bool force_software) {
-#if TARGET_OS_SIMULATOR
   if (force_software) {
     return IOSRenderingAPI::kSoftware;
   }
-#else
-  if (force_software) {
-    FML_LOG(WARNING) << "The --enable-software-rendering is only supported on Simulator targets "
-                        "and will be ignored.";
-  }
-#endif  // TARGET_OS_SIMULATOR
 
   static bool should_use_metal = ShouldUseMetalRenderer();
   if (should_use_metal) {

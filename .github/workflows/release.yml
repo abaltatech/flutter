@@ -13,7 +13,7 @@ jobs:
   create-tag:
     runs-on: ubuntu-latest
     permissions: write-all
-    
+
     steps:
 
       - name: Validate Version Format
@@ -38,14 +38,29 @@ jobs:
         run: |
           git remote add flutter-origin https://github.com/flutter/flutter.git
           git fetch flutter-origin ${{ inputs.ref }} || git fetch flutter-origin refs/tags/${{ inputs.ref }}
+          git checkout FETCH_HEAD
+
+      - name: Configure credentials
+        shell: bash
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            patches/*
+          ref: master
+          path: flutter-patches
+
+      - name: Apply patches for engine
+        shell: bash
+        run: |
+          git apply --ignore-whitespace --whitespace=nowarn flutter-patches/patches/*
 
       - name: Create and Push Tag
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-          git tag ${{ inputs.version }} FETCH_HEAD
+          git tag ${{ inputs.version }}
           git push origin ${{ inputs.version }}

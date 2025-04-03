@@ -3,7 +3,7 @@ name: ci
 on:
   pull_request:
     branches:
-      - master
+      - 'release/**'
   push:
     tags:
       - '**'
@@ -56,18 +56,6 @@ jobs:
         shell: bash
         run: |
           gclient sync -j4 -v
-
-      - uses: actions/checkout@v4
-        if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
-        with:
-          sparse-checkout: |
-            patches/*
-          ref: master
-
-      - name: Apply patches for engine
-        shell: bash
-        run: |
-          git apply --ignore-whitespace --whitespace=nowarn patches/*
 
       - name: Generate build files
         shell: bash

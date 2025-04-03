@@ -104,6 +104,7 @@ static constexpr int kNumProfilerSamplesPerSec = 5;
 @property(nonatomic, readonly, copy) NSString* labelPrefix;
 @property(nonatomic, readonly, assign) BOOL allowHeadlessExecution;
 @property(nonatomic, readonly, assign) BOOL restorationEnabled;
+@property(nonatomic, readonly, assign) BOOL forceSoftwareRendering;
 
 @property(nonatomic, strong) FlutterPlatformViewsController* platformViewsController;
 
@@ -168,6 +169,14 @@ static constexpr int kNumProfilerSamplesPerSec = 5;
   return [self initWithName:labelPrefix project:nil allowHeadlessExecution:YES];
 }
 
+- (instancetype)initWithName:(NSString*)labelPrefix softwareRendering:(BOOL)forceSoftwareRendering {
+  return [self initWithName:labelPrefix
+                     project:nil
+      allowHeadlessExecution:YES
+          restorationEnabled:NO
+           softwareRendering:forceSoftwareRendering];
+}
+
 - (instancetype)initWithName:(NSString*)labelPrefix project:(FlutterDartProject*)project {
   return [self initWithName:labelPrefix project:project allowHeadlessExecution:YES];
 }
@@ -178,13 +187,26 @@ static constexpr int kNumProfilerSamplesPerSec = 5;
   return [self initWithName:labelPrefix
                      project:project
       allowHeadlessExecution:allowHeadlessExecution
-          restorationEnabled:NO];
+          restorationEnabled:NO
+           softwareRendering:NO];
 }
 
 - (instancetype)initWithName:(NSString*)labelPrefix
                      project:(FlutterDartProject*)project
       allowHeadlessExecution:(BOOL)allowHeadlessExecution
           restorationEnabled:(BOOL)restorationEnabled {
+  return [self initWithName:labelPrefix
+                     project:project
+      allowHeadlessExecution:allowHeadlessExecution
+          restorationEnabled:restorationEnabled
+           softwareRendering:NO];
+}
+
+- (instancetype)initWithName:(NSString*)labelPrefix
+                     project:(FlutterDartProject*)project
+      allowHeadlessExecution:(BOOL)allowHeadlessExecution
+          restorationEnabled:(BOOL)restorationEnabled
+           softwareRendering:(BOOL)forceSoftwareRendering {
   self = [super init];
   NSAssert(self, @"Super init cannot be nil");
   NSAssert(labelPrefix, @"labelPrefix is required");
@@ -193,6 +215,7 @@ static constexpr int kNumProfilerSamplesPerSec = 5;
   _allowHeadlessExecution = allowHeadlessExecution;
   _labelPrefix = [labelPrefix copy];
   _dartProject = project ?: [[FlutterDartProject alloc] init];
+  _forceSoftwareRendering = forceSoftwareRendering;
 
   _enableEmbedderAPI = _dartProject.settings.enable_embedder_api;
   if (_enableEmbedderAPI) {
@@ -264,7 +287,8 @@ static constexpr int kNumProfilerSamplesPerSec = 5;
 }
 
 - (void)recreatePlatformViewsController {
-  _renderingApi = flutter::GetRenderingAPIForProcess(FlutterView.forceSoftwareRendering);
+  _renderingApi = flutter::GetRenderingAPIForProcess(FlutterView.forceSoftwareRendering ||
+                                                     self.forceSoftwareRendering);
   _platformViewsController = [[FlutterPlatformViewsController alloc] init];
 }
 
@@ -802,7 +826,8 @@ static void SetEntryPoint(flutter::Settings* settings, NSString* entrypoint, NSS
     self.initialRoute = [NSString stringWithUTF8String:settings.route.c_str()];
   }
 
-  FlutterView.forceSoftwareRendering = settings.enable_software_rendering;
+  FlutterView.forceSoftwareRendering =
+      settings.enable_software_rendering || self.forceSoftwareRendering;
 
   auto platformData = [self.dartProject defaultPlatformData];
 

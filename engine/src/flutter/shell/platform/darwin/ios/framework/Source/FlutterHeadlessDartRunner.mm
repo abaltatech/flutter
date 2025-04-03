@@ -51,7 +51,8 @@ FLUTTER_ASSERT_ARC
   return [super initWithName:labelPrefix
                      project:projectOrNil
       allowHeadlessExecution:allowHeadlessExecution
-          restorationEnabled:restorationEnabled];
+          restorationEnabled:restorationEnabled
+           softwareRendering:NO];
 }
 
 - (instancetype)init {

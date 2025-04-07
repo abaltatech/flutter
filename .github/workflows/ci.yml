@@ -66,9 +66,13 @@ jobs:
       - name: Build
         shell: bash
         working-directory: engine/src
+        env:
+          NINJA: flutter/third_party/ninja/ninja
         run: |
-          #find out -mindepth 1 -maxdepth 1 -type d | xargs -n 1 sh -c 'ninja -C $0 || exit 255'
-          flutter/third_party/ninja/ninja -C out/ios_release/
+          find out -mindepth 1 -maxdepth 1 -type d | xargs -n 1 sh -c 'flutter/third_party/ninja/ninja -C $0 || exit 255'
+          #flutter/third_party/ninja/ninja -C out/ios_release/
+          find out -mindepth 1 -maxdepth 1 -type d | xargs -n 1 sh -c 'cd $0 && zip -r $(basename $0).zip *.xcframework || exit 255'
+
 
       - uses: actions/upload-artifact@v4
         with:
@@ -80,6 +84,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: engine/src/out/*/*.xcframework
+          files: engine/src/out/*/*.zip
 
 

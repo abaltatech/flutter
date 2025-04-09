@@ -68,6 +68,10 @@ static NSString* const kAppBundleIdentifier = @"io.flutter.flutter.app";
   return NO;
 }
 
+- (void)enableSoftwareRendering {
+  NSAssert(NO, @"Cannot enable software rendering on MacOS");
+}
+
 - (NSString*)assetsPath {
   if (_assetsPath) {
     return _assetsPath;

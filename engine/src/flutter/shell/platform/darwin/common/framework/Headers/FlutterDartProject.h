@@ -95,6 +95,11 @@ FLUTTER_DARWIN_EXPORT
                    fromPackage:(NSString*)package
                     fromBundle:(nullable NSBundle*)bundle;
 
+/**
+ * Enables software rendering only for this project.
+ */
+- (void)enableSoftwareRendering;
+
 @end
 
 NS_ASSUME_NONNULL_END

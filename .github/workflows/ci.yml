@@ -19,8 +19,8 @@ jobs:
             prefix: ios_release
           - mode: '--ios --runtime-mode=debug'
             prefix: ios_debug
-          - mode: '--ios --runtime-mode=profile'
-            prefix: ios_profile
+          - mode: '--unoptimized --mac-cpu arm64'
+            prefix: host_debug_unopt_arm64
 
     steps:
 
@@ -70,24 +70,39 @@ jobs:
       - name: Build
         shell: bash
         working-directory: engine/src
-        env:
-          NINJA: flutter/third_party/ninja/ninja
         run: |
-          find out -mindepth 1 -maxdepth 1 -type d | xargs -n 1 sh -c 'flutter/third_party/ninja/ninja -C $0 || exit 255'
-          #flutter/third_party/ninja/ninja -C out/ios_release/
-          find out -mindepth 1 -maxdepth 1 -type d | xargs -n 1 sh -c 'cd $0 && zip -r $(basename $0).zip *.xcframework || exit 255'
+          flutter/third_party/ninja/ninja -C out/${{ matrix.prefix }}/
 
+          if [[ "${{ matrix.prefix }}" == "ios_release" ]]; then
+            mkdir -p out/ios_release_to_upload
+            cp -R out/${{ matrix.prefix }}/Flutter.xcframework out/ios_release_to_upload
+            cd out/ios_release_to_upload
+            zip -r ../${{ matrix.prefix }}.zip Flutter.xcframework
+          else
+            cd out
+            zip -r ${{ matrix.prefix }}.zip ${{ matrix.prefix }}
+          fi
 
       - uses: actions/upload-artifact@v4
+        if: ${{ matrix.prefix != 'ios_release' }}
         with:
           name: ${{ matrix.prefix }}
           path: |
-            engine/src/out/*/*.xcframework
+            engine/src/out/${{ matrix.prefix }}
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ matrix.prefix == 'ios_release' }}
+        with:
+          name: ${{ matrix.prefix }}
+          path: |
+            engine/src/out/ios_release_to_upload
 
       - name: Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: engine/src/out/*/*.zip
+          files: |
+            engine/src/out/${{ matrix.prefix }}.zip
+
 
 

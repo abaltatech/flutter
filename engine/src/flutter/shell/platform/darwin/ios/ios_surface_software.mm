@@ -91,12 +91,17 @@ bool IOSSurfaceSoftware::PresentBackingStore(sk_sp<SkSurface> backing_store) {
   fml::CFRef<CGColorSpaceRef> colorspace(CGColorSpaceCreateDeviceRGB());
 
   // Setup the data provider that gives CG a view into the pixmap.
-  fml::CFRef<CGDataProviderRef> pixmap_data_provider(CGDataProviderCreateWithData(
-      nullptr,          // info
-      pixmap.addr32(),  // data
-      pixmap_size,      // size
-      nullptr           // release callback
-      ));
+  // fml::CFRef<CGDataProviderRef> pixmap_data_provider(CGDataProviderCreateWithData(
+  //     nullptr,          // info
+  //     pixmap.addr32(),  // data
+  //     pixmap_size,      // size
+  //     nullptr           // release callback
+  //     ));
+
+  // copy data, TODO: optimize to avoid repeated alloc/dealloc
+  fml::CFRef<CFDataRef> data(
+      CFDataCreate(nullptr, (const unsigned char*)pixmap.addr32(), pixmap_size));
+  fml::CFRef<CGDataProviderRef> pixmap_data_provider(CGDataProviderCreateWithCFData(data));
 
   if (!pixmap_data_provider) {
     return false;

@@ -224,12 +224,7 @@ struct Settings {
   // Enable the Impeller renderer on supported platforms. Ignored if Impeller is
   // not supported on the platform.
 #if FML_OS_ANDROID || FML_OS_IOS || FML_OS_IOS_SIMULATOR
-  // On iOS devices, Impeller is the default with no opt-out and this field is
-  // const.
-#if FML_OS_IOS || FML_OS_IOS_SIMULATOR
-  static constexpr const
-#endif                              // FML_OS_IOS && !FML_OS_IOS_SIMULATOR
-      bool enable_impeller = true;  // NOLINT(readability-identifier-naming)
+  bool enable_impeller = true;  // NOLINT(readability-identifier-naming)
 #else
   bool enable_impeller = false;
 #endif

@@ -407,4 +407,9 @@ flutter::Settings FLTDefaultSettingsForBundle(NSBundle* bundle, NSProcessInfo* p
   return _settings.enable_impeller;
 }
 
+- (void)enableSoftwareRendering {
+  _settings.enable_software_rendering = true;
+  _settings.enable_impeller = false;
+}
+
 @end

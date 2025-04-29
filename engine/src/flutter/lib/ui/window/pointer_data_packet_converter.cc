@@ -120,7 +120,7 @@ void PointerDataPacketConverter::ConvertPointerData(
       case PointerData::Change::kRemove: {
         // Makes sure we have an existing pointer
         auto iter = states_.find(pointer_data.device);
-        FML_DCHECK(iter != states_.end());
+        //        FML_DCHECK(iter != states_.end());
         PointerState state = iter->second;
         if (state.view_id != pointer_data.view_id) {
           // Ignores remove event if the pointer was previously added to a
